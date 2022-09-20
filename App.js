@@ -103,8 +103,8 @@ export default function App() {
         return;
       }
 
-      updatePreview();
-      gl.endFrameEXP();
+      //updatePreview();
+      //gl.endFrameEXP();
 
       rafId.current = requestAnimationFrame(loop);
     };
@@ -114,7 +114,7 @@ export default function App() {
   const renderPose = () => {
     if (poses != null && poses.length > 0) {
       const keypoints = poses[0].keypoints
-        .filter((k) => (k.score ?? 0) > 0.5)
+        .filter((k) => (k.score ?? 0) > 0.7)
         .map((k) => {
           const flipX = IS_ANDROID || type === Camera.Constants.Type.back;
           const x = flipX ? getOutputTensorWidth() - k.x : k.x;
@@ -134,6 +134,7 @@ export default function App() {
           );
         });
 
+      // Draw lines between connected keypoints.
       const skeleton = poseDetection.util
         .getAdjacentPairs(poseDetection.SupportedModels.MoveNet)
         .map(([i, j], index) => {
@@ -144,6 +145,8 @@ export default function App() {
           const y1 = kp1.y;
           const x2 = kp2.x;
           const y2 = kp2.y;
+
+          console.log(keypoints);
 
           const cx1 = (x1 / getOutputTensorWidth()) * CAM_PREVIEW_WIDTH;
           const cy1 = (y1 / getOutputTensorHeight()) * CAM_PREVIEW_HEIGHT;
@@ -202,7 +205,7 @@ export default function App() {
           ref={cameraRef}
           style={styles.cameraPreview}
           type={type}
-          autorender={false}
+          autorender={true}
           resizeWidth={getOutputTensorWidth()}
           resizeHeight={getOutputTensorHeight()}
           resizeDepth={3}
@@ -217,13 +220,14 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    justifyContent: "center",
+    position: "relative",
+    width: CAM_PREVIEW_WIDTH,
+    height: CAM_PREVIEW_HEIGHT,
+    marginTop: Dimensions.get("window").height / 2 - CAM_PREVIEW_HEIGHT / 2,
   },
   cameraPreview: {
-    flex: 1,
-    borderRadius: 20,
+    height: "100%",
+    width: "100%",
     zIndex: 1,
   },
   fpsContainer: {
