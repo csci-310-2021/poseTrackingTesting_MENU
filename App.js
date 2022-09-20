@@ -214,69 +214,6 @@ export default function App() {
     );
   }
 }
-/*
-
-class PoseDetector extends React.Component {
-  handleCameraStream(images, updatePreview, gl) {
-    const loop = async () => {
-      const nextImageTensor = images.next().value;
-      const detectorConfig = {
-        modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
-        enableTracking: true,
-      };
-      const detector = await poseDetection.createDetector(
-        poseDetection.SupportedModels.MoveNet,
-        detectorConfig
-      );
-
-      const poses = await detector.estimatePoses(nextImageTensor);
-      console.log(poses);
-    };
-    loop();
-  }
-  render() {
-    let textureDims;
-    if (Platform.OS === "ios") {
-      textureDims = {
-        height: 1920,
-        width: 1080,
-      };
-    } else {
-      textureDims = {
-        height: 1200,
-        width: 1600,
-      };
-    }
-
-    return (
-      <View>
-        <TensorCamera
-          style={styles.camera}
-          type={CameraType.back}
-          cameraTextureHeight={textureDims.height}
-          cameraTextureWidth={textureDims.width}
-          resizeHeight={200}
-          resizeWidth={152}
-          resizeDepth={3}
-          onready={this.handleCameraStream}
-          autorender={true}
-        />
-      </View>
-    );
-  }
-}
-
-export default class App extends React.Component {
-
-  render() {
-    return (
-      <View style={styles.container}>
-        <Camera styles={styles.camera}></Camera>
-      </View>
-    );
-  }
-}
-*/
 
 const styles = StyleSheet.create({
   container: {
