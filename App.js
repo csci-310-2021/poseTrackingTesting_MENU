@@ -59,7 +59,7 @@ export default function App() {
       await tf.ready();
 
       const modelConfig = {
-        modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+        modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER,
         enableSmoothing: true,
       };
 
@@ -114,7 +114,7 @@ export default function App() {
   const renderPose = () => {
     if (poses != null && poses.length > 0) {
       const keypoints = poses[0].keypoints
-        .filter((k) => (k.score ?? 0) > 0.7)
+        .filter((k) => (k.score ?? 0) > 0.5)
         .map((k) => {
           const flipX = IS_ANDROID || type === Camera.Constants.Type.back;
           const x = flipX ? getOutputTensorWidth() - k.x : k.x;
@@ -138,32 +138,38 @@ export default function App() {
       const skeleton = poseDetection.util
         .getAdjacentPairs(poseDetection.SupportedModels.MoveNet)
         .map(([i, j], index) => {
-          const keypoints = poses[0].keypoints;
-          const kp1 = keypoints[i];
-          const kp2 = keypoints[j];
-          const x1 = kp1.x;
-          const y1 = kp1.y;
-          const x2 = kp2.x;
-          const y2 = kp2.y;
-
-          console.log(keypoints);
-
-          const cx1 = (x1 / getOutputTensorWidth()) * CAM_PREVIEW_WIDTH;
-          const cy1 = (y1 / getOutputTensorHeight()) * CAM_PREVIEW_HEIGHT;
-          const cx2 = (x2 / getOutputTensorWidth()) * CAM_PREVIEW_WIDTH;
-          const cy2 = (y2 / getOutputTensorHeight()) * CAM_PREVIEW_HEIGHT;
-          return (
-            <Line
-              key={`skeletonls_${index}`}
-              x1={cx1}
-              y1={cy1}
-              x2={cx2}
-              y2={cy2}
-              r="4"
-              stroke="red"
-              strokeWidth="1"
-            ></Line>
+          const keypoints = poses[0].keypoints.filter(
+            (k) => (k.score ?? 0) > 0.5
           );
+          try {
+            const kp1 = keypoints[i];
+            const kp2 = keypoints[j];
+            const x1 = kp1.x;
+            const y1 = kp1.y;
+            const x2 = kp2.x;
+            const y2 = kp2.y;
+
+            //console.log(keypoints);
+
+            const cx1 = (x1 / getOutputTensorWidth()) * CAM_PREVIEW_WIDTH;
+            const cy1 = (y1 / getOutputTensorHeight()) * CAM_PREVIEW_HEIGHT;
+            const cx2 = (x2 / getOutputTensorWidth()) * CAM_PREVIEW_WIDTH;
+            const cy2 = (y2 / getOutputTensorHeight()) * CAM_PREVIEW_HEIGHT;
+            return (
+              <Line
+                key={`skeletonls_${index}`}
+                x1={cx1}
+                y1={cy1}
+                x2={cx2}
+                y2={cy2}
+                r="4"
+                stroke="red"
+                strokeWidth="1"
+              ></Line>
+            );
+          } catch {
+            //console.log("point not needed to be drawn");
+          }
         });
       return (
         <Svg style={styles.svg}>
