@@ -11,7 +11,7 @@ import "@tensorflow/tfjs-backend-webgl";
 import { Camera, CameraType } from "expo-camera";
 import { GLView, ExpoWebGLRenderingContext } from "expo-gl";
 import React, { useState, useEffect, useRef } from "react";
-import Svg, { Circle } from "react-native-svg";
+import Svg, { Circle, Line } from "react-native-svg";
 
 global.Promise = require("promise");
 
@@ -94,9 +94,6 @@ export default function App() {
         undefined,
         Date.now()
       );
-      try {
-        console.log(poses[0].keypoints);
-      } catch {}
       const latency = Date.now() - startTs;
       setFps(Math.floor(1000 / latency));
       setPoses(poses);
@@ -136,7 +133,41 @@ export default function App() {
             ></Circle>
           );
         });
-      return <Svg style={styles.svg}>{keypoints}</Svg>;
+
+      const skeleton = poseDetection.util
+        .getAdjacentPairs(poseDetection.SupportedModels.MoveNet)
+        .map(([i, j], index) => {
+          const keypoints = poses[0].keypoints;
+          const kp1 = keypoints[i];
+          const kp2 = keypoints[j];
+          const x1 = kp1.x;
+          const y1 = kp1.y;
+          const x2 = kp2.x;
+          const y2 = kp2.y;
+
+          const cx1 = (x1 / getOutputTensorWidth()) * CAM_PREVIEW_WIDTH;
+          const cy1 = (y1 / getOutputTensorHeight()) * CAM_PREVIEW_HEIGHT;
+          const cx2 = (x2 / getOutputTensorWidth()) * CAM_PREVIEW_WIDTH;
+          const cy2 = (y2 / getOutputTensorHeight()) * CAM_PREVIEW_HEIGHT;
+          return (
+            <Line
+              key={`skeletonls_${index}`}
+              x1={cx1}
+              y1={cy1}
+              x2={cx2}
+              y2={cy2}
+              r="4"
+              stroke="red"
+              strokeWidth="1"
+            ></Line>
+          );
+        });
+      return (
+        <Svg style={styles.svg}>
+          {skeleton}
+          {keypoints}
+        </Svg>
+      );
     } else {
       return <View></View>;
     }
