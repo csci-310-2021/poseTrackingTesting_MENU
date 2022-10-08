@@ -304,7 +304,7 @@ export default function App() {
         {renderPose()}
         {renderFps()}
         {recording ? (
-          <Button title="Stop Tracking & Create XLSX" onPress={generateJSON} />
+          <Button title="Stop Tracking & Create JSON" onPress={generateJSON} />
         ) : (
           <Button
             title="Start Tracking Points"
