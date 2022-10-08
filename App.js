@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View, Dimensions } from "react-native";
+import { StyleSheet, Text, View, Dimensions, Button } from "react-native";
 import "@tensorflow/tfjs-react-native";
 import {
   cameraWithTensors,
@@ -12,6 +12,9 @@ import { Camera, CameraType } from "expo-camera";
 import { GLView, ExpoWebGLRenderingContext } from "expo-gl";
 import React, { useState, useEffect, useRef } from "react";
 import Svg, { Circle, Line } from "react-native-svg";
+import * as XLXS from "xlsx";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
 
 global.Promise = require("promise");
 
@@ -32,6 +35,53 @@ const CAM_PREVIEW_HEIGHT = CAM_PREVIEW_WIDTH / (IS_IOS ? 9 / 16 : 3 / 4);
 
 const OUTPUT_TENSOR_WIDTH = 180;
 const OUTPUT_TENSOR_HEIGHT = OUTPUT_TENSOR_WIDTH / (IS_IOS ? 9 / 16 : 3 / 4);
+let frameData = new Array();
+
+/*
+const createCsvWriter = require("csv-writer").createObjectCsvWriter;
+const csvWriter = createCsvWriter({
+  path: "jointData.csv",
+  header: [
+    { id: "name", title: "Name" },
+    { id: "x", title: "x" },
+    { id: "y", title: "y" },
+    { id: "score", title: "Score" },
+  ],
+});
+*/
+
+export function WriteToCSV(data) {}
+
+export function ConvertDataForCSV(args) {
+  var result, ctr, keys, columnDelimiter, lineDelimiter, data;
+  data = args.data || null;
+  if (data == null || !data.length) {
+    console.log("No data");
+    return null;
+  }
+  columnDelimiter = args.columnDelimiter || ",";
+  lineDelimiter = args.lineDelimiter || "\n";
+
+  keys = Object.keys(data[0]);
+
+  result = "";
+  result += keys.join(columnDelimiter);
+  result += lineDelimiter;
+
+  data.forEach(function (item) {
+    ctr = 0;
+    keys.forEach(function (key) {
+      if (ctr > 0) {
+        result += columnDelimiter;
+      }
+      result += item[key];
+      ctr++;
+    });
+    result += lineDelimiter;
+  });
+
+  return result;
+}
 
 export default function App() {
   const [hasCameraPermission, setHasCameraPermission] = useState(null);
@@ -42,6 +92,7 @@ export default function App() {
   const [model, setModel] = useState();
   const [poses, setPoses] = useState();
   const [tfReady, setTfReady] = useState(false);
+  const [recording, setRecording] = useState(false);
 
   /*
   useEffect(() => {
@@ -113,9 +164,14 @@ export default function App() {
 
   const renderPose = () => {
     if (poses != null && poses.length > 0) {
+      //console.log(ConvertDataForCSV({ data: poses[0].keypoints }));
+      if (recording == true) {
+        frameData.push(poses[0].keypoints);
+      }
       const keypoints = poses[0].keypoints
         .filter((k) => (k.score ?? 0) > 0.5)
         .map((k) => {
+          // console.log(k);
           const flipX = IS_ANDROID || type === Camera.Constants.Type.back;
           const x = flipX ? getOutputTensorWidth() - k.x : k.x;
           const y = k.y;
@@ -173,7 +229,7 @@ export default function App() {
         });
       return (
         <Svg style={styles.svg}>
-          {skeleton}
+          {/*skeleton*/}
           {keypoints}
         </Svg>
       );
@@ -187,6 +243,34 @@ export default function App() {
       <View style={styles.fpsContainer}>
         <Text>FPS: {fps}</Text>
       </View>
+    );
+  };
+
+  const generateExcel = () => {
+    setRecording(false);
+    console.log(frameData);
+    let wb = XLXS.utils.book_new();
+    let ws = XLXS.utils.json_to_sheet(frameData);
+
+    XLXS.utils.book_append_sheet(wb, ws, "Joint Data", true);
+
+    const base64 = XLXS.write(wb, { type: "base64" });
+    const filename = FileSystem.documentDirectory + "JointData.xlsx";
+    FileSystem.writeAsStringAsync(filename, base64, {
+      encoding: FileSystem.EncodingType.Base64,
+    }).then(() => {
+      Sharing.shareAsync(filename);
+    });
+  };
+
+  const generateJSON = () => {
+    setRecording(false);
+    //console.log(frameData);
+    const filename = FileSystem.documentDirectory + "JointData.json";
+    FileSystem.writeAsStringAsync(filename, JSON.stringify(frameData)).then(
+      () => {
+        Sharing.shareAsync(filename);
+      }
     );
   };
 
@@ -219,6 +303,14 @@ export default function App() {
         />
         {renderPose()}
         {renderFps()}
+        {recording ? (
+          <Button title="Stop Tracking & Create XLSX" onPress={generateJSON} />
+        ) : (
+          <Button
+            title="Start Tracking Points"
+            onPress={() => setRecording(true)}
+          />
+        )}
       </View>
     );
   }
