@@ -41,6 +41,8 @@ const poseOptions = [
   { value: 0, label: "JJ Bottom" },
   { value: 1, label: "JJ Middle" },
   { value: 2, label: "JJ Top" },
+  { value: 3, label: "Squat Top" },
+  { value: 4, label: "Squat Bottom" },
 ];
 
 /*
