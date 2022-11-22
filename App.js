@@ -37,6 +37,12 @@ const OUTPUT_TENSOR_WIDTH = 180;
 const OUTPUT_TENSOR_HEIGHT = OUTPUT_TENSOR_WIDTH / (IS_IOS ? 9 / 16 : 3 / 4);
 let frameData = new Array();
 
+const poseOptions = [
+  { value: 0, label: "JJ Bottom" },
+  { value: 1, label: "JJ Middle" },
+  { value: 2, label: "JJ Top" },
+];
+
 /*
 const createCsvWriter = require("csv-writer").createObjectCsvWriter;
 const csvWriter = createCsvWriter({
@@ -93,6 +99,7 @@ export default function App() {
   const [poses, setPoses] = useState();
   const [tfReady, setTfReady] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [poseOption, setPoseOption] = useState(poseOptions[0]);
 
   /*
   useEffect(() => {
@@ -166,7 +173,9 @@ export default function App() {
     if (poses != null && poses.length > 0) {
       //console.log(ConvertDataForCSV({ data: poses[0].keypoints }));
       if (recording == true) {
-        frameData.push(poses[0].keypoints);
+        let keypoints = poses[0].keypoints;
+        keypoints.push(poseOption.value);
+        frameData.push(keypoints);
       }
       const keypoints = poses[0].keypoints
         .filter((k) => (k.score ?? 0) > 0.5)
@@ -282,6 +291,14 @@ export default function App() {
     return OUTPUT_TENSOR_HEIGHT;
   };
 
+  const cyclePoseOptions = () => {
+    if (poseOption.value < poseOptions.length - 1) {
+      setPoseOption(poseOptions[poseOption.value + 1]);
+    } else {
+      setPoseOption(poseOptions[0]);
+    }
+  };
+
   if (!tfReady) {
     return (
       <View style={styles.loadingMsg}>
@@ -303,6 +320,7 @@ export default function App() {
         />
         {renderPose()}
         {renderFps()}
+        {<Button title={poseOption.label} onPress={cyclePoseOptions}></Button>}
         {recording ? (
           <Button title="Stop Tracking & Create JSON" onPress={generateJSON} />
         ) : (
