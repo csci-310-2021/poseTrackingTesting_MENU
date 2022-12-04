@@ -45,52 +45,6 @@ const poseOptions = [
   { value: 4, label: "Squat Bottom" },
 ];
 
-/*
-const createCsvWriter = require("csv-writer").createObjectCsvWriter;
-const csvWriter = createCsvWriter({
-  path: "jointData.csv",
-  header: [
-    { id: "name", title: "Name" },
-    { id: "x", title: "x" },
-    { id: "y", title: "y" },
-    { id: "score", title: "Score" },
-  ],
-});
-*/
-
-export function WriteToCSV(data) {}
-
-export function ConvertDataForCSV(args) {
-  var result, ctr, keys, columnDelimiter, lineDelimiter, data;
-  data = args.data || null;
-  if (data == null || !data.length) {
-    console.log("No data");
-    return null;
-  }
-  columnDelimiter = args.columnDelimiter || ",";
-  lineDelimiter = args.lineDelimiter || "\n";
-
-  keys = Object.keys(data[0]);
-
-  result = "";
-  result += keys.join(columnDelimiter);
-  result += lineDelimiter;
-
-  data.forEach(function (item) {
-    ctr = 0;
-    keys.forEach(function (key) {
-      if (ctr > 0) {
-        result += columnDelimiter;
-      }
-      result += item[key];
-      ctr++;
-    });
-    result += lineDelimiter;
-  });
-
-  return result;
-}
-
 export default function App() {
   const [hasCameraPermission, setHasCameraPermission] = useState(null);
   const [type, setType] = useState(Camera.Constants.Type.front);
@@ -257,26 +211,8 @@ export default function App() {
     );
   };
 
-  const generateExcel = () => {
-    setRecording(false);
-    console.log(frameData);
-    let wb = XLXS.utils.book_new();
-    let ws = XLXS.utils.json_to_sheet(frameData);
-
-    XLXS.utils.book_append_sheet(wb, ws, "Joint Data", true);
-
-    const base64 = XLXS.write(wb, { type: "base64" });
-    const filename = FileSystem.documentDirectory + "JointData.xlsx";
-    FileSystem.writeAsStringAsync(filename, base64, {
-      encoding: FileSystem.EncodingType.Base64,
-    }).then(() => {
-      Sharing.shareAsync(filename);
-    });
-  };
-
   const generateJSON = () => {
     setRecording(false);
-    //console.log(frameData);
     const filename = FileSystem.documentDirectory + "JointData.json";
     FileSystem.writeAsStringAsync(filename, JSON.stringify(frameData)).then(
       () => {
