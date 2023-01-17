@@ -36,6 +36,7 @@ const CAM_PREVIEW_HEIGHT = CAM_PREVIEW_WIDTH / (IS_IOS ? 9 / 16 : 3 / 4);
 const OUTPUT_TENSOR_WIDTH = 180;
 const OUTPUT_TENSOR_HEIGHT = OUTPUT_TENSOR_WIDTH / (IS_IOS ? 9 / 16 : 3 / 4);
 let frameData = new Array();
+let frameCount = 0;
 
 const poseOptions = [
   { value: 0, label: "JJ Bottom" },
@@ -132,6 +133,7 @@ export default function App() {
         let keypoints = poses[0].keypoints;
         keypoints.push(poseOption.value);
         frameData.push(keypoints);
+        frameCount++;
       }
       const keypoints = poses[0].keypoints
         .filter((k) => (k.score ?? 0) > 0.5)
@@ -211,6 +213,14 @@ export default function App() {
     );
   };
 
+  const renderFrame = () => {
+    return (
+      <View style={styles.fpsContainer}>
+        <Text>Frame #: {frameCount}</Text>
+      </View>
+    );
+  };
+
   const generateJSON = () => {
     setRecording(false);
     const filename = FileSystem.documentDirectory + "JointData.json";
@@ -219,6 +229,9 @@ export default function App() {
         Sharing.shareAsync(filename);
       }
     );
+
+    frameData = [];
+    frameCount = 0;
   };
 
   const getOutputTensorWidth = () => {
@@ -257,7 +270,8 @@ export default function App() {
           onReady={handleCameraStream}
         />
         {renderPose()}
-        {renderFps()}
+        {/*renderFps()*/}
+        {renderFrame()}
         {<Button title={poseOption.label} onPress={cyclePoseOptions}></Button>}
         {recording ? (
           <Button title="Stop Tracking & Create JSON" onPress={generateJSON} />
