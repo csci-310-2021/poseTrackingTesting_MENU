@@ -132,7 +132,8 @@ export default function App() {
       if (recording == true) {
         let keypoints = poses[0].keypoints;
         keypoints.push(poseOption.value);
-        frameData.push(keypoints);
+        let temp = [frameCount, keypoints];
+        frameData.push(temp);
         frameCount++;
       }
       const keypoints = poses[0].keypoints
