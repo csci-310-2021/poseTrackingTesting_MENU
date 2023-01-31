@@ -16,6 +16,8 @@ import * as XLXS from "xlsx";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 
+import ClassificationUtil from "./ClassificationUtil";
+
 // forces all failed promises to be logged, instead of immediately crashing the app with no logs
 global.Promise = require("promise");
 require("promise/lib/rejection-tracking").enable({
