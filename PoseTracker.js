@@ -1,13 +1,13 @@
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, Text, View, Dimensions, Button } from "react-native";
-import "@tensorflow/tfjs-react-native";
+
 import {
   cameraWithTensors,
   bundleResourceIO,
 } from "@tensorflow/tfjs-react-native";
 import * as poseDetection from "@tensorflow-models/pose-detection";
-import * as tf from "@tensorflow/tfjs-core";
-import "@tensorflow/tfjs-backend-webgl";
+import * as tf from "@tensorflow/tfjs";
+
 import { Camera, CameraType } from "expo-camera";
 import { GLView, ExpoWebGLRenderingContext } from "expo-gl";
 import React, { useState, useEffect, useRef } from "react";
@@ -16,7 +16,7 @@ import * as XLXS from "xlsx";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 
-import ClassificationUtil from "./ClassificationUtil";
+import ClassificationUtil from "./ClassificationUtil.js";
 
 // forces all failed promises to be logged, instead of immediately crashing the app with no logs
 global.Promise = require("promise");
@@ -54,7 +54,7 @@ export default function PoseTracker({
   autoRender = true,
   undefinedPoseName = "undefined_pose",
   undefinedExerciseName = "undefined_exercise",
-  estimationThreshold = 0.7,
+  estimationThreshold = 0.5,
   classificationSmoothingValue = 1,
   movementWindowResetLimit = 20,
 
@@ -76,6 +76,7 @@ export default function PoseTracker({
   const [model, setModel] = useState();
   const [poses, setPoses] = useState();
   const [tfReady, setTfReady] = useState(false);
+  const [classificationUtil, setClassificationUtil] = useState(null);
 
   useEffect(() => {
     classifiedPose([undefinedPoseName, 0.0]);
@@ -155,6 +156,18 @@ export default function PoseTracker({
         modelConfig
       );
 
+      const classificationUtil_ = new ClassificationUtil();
+
+      //model, label, and the associated hooks can be used to modify app (if needed)
+      const [labels, learned_exercises] =
+        await classificationUtil_.loadClassification(modelUrl);
+
+      learnedPoses(labels); //sets learned poses for callback (output)
+      learnedExercises(learned_exercises); //sets learned exercises for callback (output)
+      classificationUtil_.setResetLimit(movementWindowResetLimit); //sets reset limit for exercise classification
+      classificationUtil_.setSmoothingBuffer(classificationSmoothingValue); //sets smoothing buffer for exercise classification
+      setClassificationUtil(classificationUtil_);
+
       setModel(model);
       setTfReady(true);
       console.log("tf ready and model set");
@@ -190,15 +203,37 @@ export default function PoseTracker({
         isLoading(false);
       }
 
+      if (poses.length > 0) {
+        var [poseName, confidence] = await classificationUtil.classifyPose(
+          poses
+        );
+
+        console.log("Pose Name: ", poseName, " Confidence: ", confidence);
+
+        if (poseName && confidence) {
+          classifiedPose([poseName, confidence]);
+          isDetecting(false);
+
+          if (!resetExercises) {
+            //classificationUtil.trackMovement();
+          }
+        }
+      } else {
+        classifiedPose([undefinedPoseName, 0.0]);
+        isDetecting(true);
+      }
+
+      /*
       try {
         if (poses.length > 0) {
           try {
-            var [poseName, confidence] =
-              await ClassificationUtil.classifiedPose(poses);
+            var [poseName, confidence] = await classificationUtil.classifiyPose(
+              poses
+            );
             console.log("posename :" + poseName);
           } catch {
             var [poseName, confidence] = [undefinedPoseName, 0.0];
-            console.log("No pose detected");
+            //console.log("No pose detected");
           }
           try {
             var classified_poses = await classificationUtil.classifyPoses(
@@ -235,7 +270,7 @@ export default function PoseTracker({
           }
         }
       } catch {}
-
+      */
       tf.dispose([nextImageTensor]);
 
       if (rafId.current === 0) {

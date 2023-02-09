@@ -1,3 +1,4 @@
+import * as tf from "@tensorflow/tfjs";
 import { bundleResourceIO } from "@tensorflow/tfjs-react-native";
 
 const poseOptions = [
@@ -51,6 +52,7 @@ export default class ClassificationUtil {
   }
 
   async loadClassification(model_url) {
+    console.log("Loading Classification Model...");
     await tf.ready();
 
     const modelJSON = require("./assets/model.json");
@@ -59,6 +61,7 @@ export default class ClassificationUtil {
     this.model = await tf.loadLayersModel(
       bundleResourceIO(modelJSON, modelWeights)
     );
+    this.model.summary();
     this.model_classes = modelClasses;
 
     const exercises = require("./assets/exercises.json");
@@ -185,7 +188,6 @@ export default class ClassificationUtil {
         predictionTensor,
         this.model_classes
       );
-
       this.classified_pose = poseName; //utilized with movement tracking / exercise classification
       return [poseName, confidence];
       //Classified Pose Array:
@@ -207,7 +209,6 @@ export default class ClassificationUtil {
         this.model_classes,
         this.model_classes.length
       );
-
       const poseName = classifiedPoses[0].poseName; //gets the highest confidence pose name from poses object
       this.classified_pose = poseName; //utilized with movement tracking / exercise classification
       return classifiedPoses; //Poses Array of Objects - look @ getClassifiedPoses
@@ -475,10 +476,9 @@ export default class ClassificationUtil {
     let arr_expanded = new Array([]);
     if (pose.length > 0) {
       //define a new array
-      for (let i = 0; i < 33; i++) {
-        arr_expanded[0].push(pose[0].keypoints3D[i]["x"]);
-        arr_expanded[0].push(pose[0].keypoints3D[i]["y"]);
-        arr_expanded[0].push(pose[0].keypoints3D[i]["z"]);
+      for (let i = 0; i < 17; i++) {
+        arr_expanded[0].push(pose[0].keypoints["x"]);
+        arr_expanded[0].push(pose[0].keypoints["y"]);
       }
     }
 
