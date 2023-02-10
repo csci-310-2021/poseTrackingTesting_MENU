@@ -180,10 +180,12 @@ export default class ClassificationUtil {
     //use model to predict
     const array = this.formatArray(keypoints);
     const tensor_of_keypoints = tf.tensor(array);
+    //console.log("tensor " + tensor_of_keypoints);
 
     //If the model exists then do classification
     if (this.model) {
       const predictionTensor = this.model.predict(tensor_of_keypoints);
+      console.log(predictionTensor.dataSync());
       const [poseName, confidence] = await this.getClassifiedPose(
         predictionTensor,
         this.model_classes
@@ -239,6 +241,7 @@ export default class ClassificationUtil {
   // Topk() from tf.js returns the value
   // and index with the highest value/confidence.
   async getClassifiedPose(prediction, classes) {
+    //console.log(prediction);
     const { values, indices } = await prediction.topk();
     const topKValues = await values.data();
     const topKIndices = await indices.data();
@@ -477,8 +480,8 @@ export default class ClassificationUtil {
     if (pose.length > 0) {
       //define a new array
       for (let i = 0; i < 17; i++) {
-        arr_expanded[0].push(pose[0].keypoints["x"]);
-        arr_expanded[0].push(pose[0].keypoints["y"]);
+        arr_expanded[0].push(pose[0].keypoints[i]["x"]);
+        arr_expanded[0].push(pose[0].keypoints[i]["y"]);
       }
     }
 
