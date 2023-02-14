@@ -1,331 +1,243 @@
-import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View, Dimensions, Button } from "react-native";
-import "@tensorflow/tfjs-react-native";
+import React, { useEffect, useState } from "react";
 import {
-  cameraWithTensors,
-  bundleResourceIO,
-} from "@tensorflow/tfjs-react-native";
-import * as poseDetection from "@tensorflow-models/pose-detection";
-import * as tf from "@tensorflow/tfjs-core";
-import "@tensorflow/tfjs-backend-webgl";
-import { Camera, CameraType } from "expo-camera";
-import { GLView, ExpoWebGLRenderingContext } from "expo-gl";
-import React, { useState, useEffect, useRef } from "react";
-import Svg, { Circle, Line } from "react-native-svg";
-import * as XLXS from "xlsx";
-import * as FileSystem from "expo-file-system";
-import * as Sharing from "expo-sharing";
+  StyleSheet,
+  Text,
+  View,
+  Button,
+  ActivityIndicator,
+  Platform,
+} from "react-native";
+import PoseTracker from "./PoseTracker";
 
-import ClassificationUtil from "./ClassificationUtil";
-
-// forces all failed promises to be logged, instead of immediately crashing the app with no logs
-global.Promise = require("promise");
-require("promise/lib/rejection-tracking").enable({
-  allRejections: true,
-  onUnhandled: (id, error) => {
-    console.log("unhandled rejection", id, error);
-    console.log(error.stack);
-  },
-});
-
-// screen settings for the camera preview to handle IOS and Android
-const TensorCamera = cameraWithTensors(Camera);
 const IS_ANDROID = Platform.OS === "android";
 const IS_IOS = Platform.OS === "ios";
-const CAM_PREVIEW_WIDTH = Dimensions.get("window").width;
-const CAM_PREVIEW_HEIGHT = CAM_PREVIEW_WIDTH / (IS_IOS ? 9 / 16 : 3 / 4);
-const OUTPUT_TENSOR_WIDTH = 180;
-const OUTPUT_TENSOR_HEIGHT = OUTPUT_TENSOR_WIDTH / (IS_IOS ? 9 / 16 : 3 / 4);
 
-// variables to hold the frame count for exporting
-let frameData = new Array();
-let frameCount = 0;
+const PREVIEW_MARGIN = IS_IOS ? -250 : -200;
 
-// variable that holds the possible pose options that can be trained
-// to add more poses, create another value and label, the app will automatically change the select button to include it
-const poseOptions = [
-  { value: 0, label: "JJ Bottom" },
-  { value: 1, label: "JJ Middle" },
-  { value: 2, label: "JJ Top" },
-  { value: 3, label: "Squat Top" },
-  { value: 4, label: "Squat Bottom" },
-];
+export default function PoseDetector({ route }) {
+  //const { target_pose, target_exercise } = route.params;
 
-export default function App() {
-  const [hasCameraPermission, setHasCameraPermission] = useState(null);
-  const [type, setType] = useState(Camera.Constants.Type.front);
-  const cameraRef = useRef(null);
-  const [fps, setFps] = useState(0);
-  const rafId = useRef(null);
-  const [model, setModel] = useState();
-  const [poses, setPoses] = useState();
-  const [tfReady, setTfReady] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [poseOption, setPoseOption] = useState(poseOptions[0]);
+  const target_pose = "JJ Top";
+  const target_exercise = null;
 
-  useEffect(() => {
-    async function prepare() {
-      rafId.current = null;
-      await Camera.requestCameraPermissionsAsync();
-      await tf.ready();
+  const [cameraType, setCameraType] = useState("front");
+  const [classifiedPoses, setClassifiedPoses] = useState(null);
+  const [classifiedPose, setClassifiedPose] = useState(["", 0.0]); //This helps avoid rendering problems where
+  //the poseName can equal null
+  const [classifiedExercises, setClassifiedExercises] = useState(null);
+  const [classifiedExercise, setClassifiedExercise] = useState(null);
+  const [learnedPoses, setLearnedPoses] = useState(null);
+  const [learnedExercises, setLearnedExercises] = useState(null);
+  const [isDetecting, setIsDetecting] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
-      // creating model settings
-      const modelConfig = {
-        modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
-        enableSmoothing: true,
-      };
-
-      // creating the model, using movenet
-      const model = await poseDetection.createDetector(
-        poseDetection.SupportedModels.MoveNet,
-        modelConfig
-      );
-
-      setModel(model);
-      setTfReady(true);
-      console.log("tf ready and model set");
-    }
-    prepare();
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (rafId.current != null && rafId.current !== 0) {
-        cancelAnimationFrame(rafId.current);
-        rafId.current = 0;
-      }
-    };
-  }, []);
-
-  const handleCameraStream = async (images, updatePreview, gl) => {
-    console.log("entered handleCameraStream");
-    const loop = async () => {
-      const nextImageTensor = images.next().value;
-      const startTs = Date.now();
-      const poses = await model.estimatePoses(
-        nextImageTensor,
-        undefined,
-        Date.now()
-      );
-      const latency = Date.now() - startTs;
-      setFps(Math.floor(1000 / latency));
-      setPoses(poses);
-      tf.dispose([nextImageTensor]);
-
-      if (rafId.current === 0) {
-        return;
-      }
-
-      //updatePreview();
-      //gl.endFrameEXP();
-
-      rafId.current = requestAnimationFrame(loop);
-    };
-    loop();
+  const handleClassifiedPose = (classified_pose) => {
+    setClassifiedPose(classified_pose);
   };
 
-  const renderPose = () => {
-    if (poses != null && poses.length > 0) {
-      if (recording == true) {
-        let keypoints = poses[0].keypoints;
-        keypoints.push(poseOption.value);
-        let temp = [frameCount, keypoints];
-        frameData.push(temp);
-        frameCount++;
-      }
-      const keypoints = poses[0].keypoints
-        .filter((k) => (k.score ?? 0) > 0.5)
-        .map((k) => {
-          // console.log(k);
-          const flipX = IS_ANDROID || type === Camera.Constants.Type.back;
-          const x = flipX ? getOutputTensorWidth() - k.x : k.x;
-          const y = k.y;
-          const cx = (x / getOutputTensorWidth()) * CAM_PREVIEW_WIDTH;
-          const cy = (y / getOutputTensorHeight()) * CAM_PREVIEW_HEIGHT;
-          return (
-            <Circle
-              key={k.name}
-              cx={cx}
-              cy={cy}
-              r="4"
-              strokeWidth="2"
-              fill="#00AA00"
-              stroke="white"
-            ></Circle>
-          );
-        });
+  const handleClassifiedPoses = (classified_poses) => {
+    setClassifiedPoses(classified_poses);
+  };
 
-      // Draw lines between connected keypoints.
-      const skeleton = poseDetection.util
-        .getAdjacentPairs(poseDetection.SupportedModels.MoveNet)
-        .map(([i, j], index) => {
-          const keypoints = poses[0].keypoints.filter(
-            (k) => (k.score ?? 0) > 0.5
-          );
-          try {
-            const kp1 = keypoints[i];
-            const kp2 = keypoints[j];
-            const x1 = kp1.x;
-            const y1 = kp1.y;
-            const x2 = kp2.x;
-            const y2 = kp2.y;
+  const handleClassifiedExercise = (classified_exercise) => {
+    setClassifiedExercise(classified_exercise);
+  };
 
-            //console.log(keypoints);
+  const handleClassifiedExercises = (classified_exercises) => {
+    setClassifiedExercises(classified_exercises);
+  };
 
-            const cx1 = (x1 / getOutputTensorWidth()) * CAM_PREVIEW_WIDTH;
-            const cy1 = (y1 / getOutputTensorHeight()) * CAM_PREVIEW_HEIGHT;
-            const cx2 = (x2 / getOutputTensorWidth()) * CAM_PREVIEW_WIDTH;
-            const cy2 = (y2 / getOutputTensorHeight()) * CAM_PREVIEW_HEIGHT;
-            return (
-              <Line
-                key={`skeletonls_${index}`}
-                x1={cx1}
-                y1={cy1}
-                x2={cx2}
-                y2={cy2}
-                r="4"
-                stroke="red"
-                strokeWidth="1"
-              ></Line>
-            );
-          } catch {
-            //console.log("point not needed to be drawn");
-          }
-        });
+  const handlePoseList = (learned_poses) => {
+    setLearnedPoses(learned_poses);
+  };
+
+  const handleExerciseList = (learned_exercises) => {
+    setLearnedExercises(learned_exercises);
+  };
+
+  const handleIsDetecting = (detecting) => {
+    setIsDetecting(detecting);
+  };
+
+  const handleIsLoading = (loading) => {
+    setIsLoading(loading);
+  };
+
+  const renderLoading = () => {
+    if (isLoading) {
       return (
-        <Svg style={styles.svg}>
-          {/*skeleton*/}
-          {keypoints}
-        </Svg>
+        <View style={styles.loading}>
+          <ActivityIndicator
+            size={200}
+            color="#ffffff"
+            animating={true}
+            style={styles.activityIndicator}
+          />
+        </View>
       );
     } else {
       return <View></View>;
     }
   };
 
-  const renderFps = () => {
-    return (
-      <View style={styles.fpsContainer}>
-        <Text>FPS: {fps}</Text>
-      </View>
-    );
-  };
-
-  const renderFrameCount = () => {
-    return (
-      <View style={styles.fpsContainer}>
-        <Text>Frame #: {frameCount}</Text>
-      </View>
-    );
-  };
-
-  const generateJSON = () => {
-    setRecording(false);
-
-    let i = frameData.length;
-
-    while (i--) (i + 1) % 2 === 0 && frameData.splice(i, 1);
-
-    const filename = FileSystem.documentDirectory + "JointData.json";
-    FileSystem.writeAsStringAsync(filename, JSON.stringify(frameData)).then(
-      () => {
-        Sharing.shareAsync(filename);
-      }
-    );
-
-    console.log("Frame data is size " + frameData.length);
-    console.log("Frame count is " + frameCount);
-
-    frameData = [];
-    frameCount = 0;
-  };
-
-  const getOutputTensorWidth = () => {
-    return OUTPUT_TENSOR_WIDTH;
-  };
-
-  const getOutputTensorHeight = () => {
-    return OUTPUT_TENSOR_HEIGHT;
-  };
-
-  const cyclePoseOptions = () => {
-    if (poseOption.value < poseOptions.length - 1) {
-      setPoseOption(poseOptions[poseOption.value + 1]);
+  //renders the status box based on the above states
+  const renderStatusBox = () => {
+    //Component Rendering
+    //is Loading is passed from the PoseClassifier Component
+    if (isLoading) {
+      //Here the user could define their own components
+      //to load while the classifier is loading.
+      //However, we are going to just use the defaulted
+      //component by simply returning the Classifier Component
+      //along with some loading visuals and the target pose name
+      return (
+        <View style={styles.purplebox}>
+          <View style={styles.row}>
+            <Text style={{ fontSize: 30 }}>Loading Pose Classification...</Text>
+          </View>
+        </View>
+      );
     } else {
-      setPoseOption(poseOptions[0]);
+      //depends on how we implement confidence here for component
+      //likely, PoseClassifier will give back an array of confidences
+      //if the confidence is lower than a certain number then
+      //render the isDetecting screen.  If we use classificationArray
+      //to do this, then we could make a bool function (isDetecting)
+      if (isDetecting) {
+        return (
+          <View style={styles.orangebox}>
+            <View style={styles.row}>
+              <Text style={{ fontSize: 30, color: "white" }}>
+                Detecting Pose...
+              </Text>
+            </View>
+          </View>
+        );
+      } else {
+        return (
+          <View style={styles.greenbox}>
+            <View style={styles.row}>
+              <Text style={{ fontSize: 50, color: "white" }}>
+                {classifiedPose[0]}
+              </Text>
+            </View>
+          </View>
+        );
+      }
     }
   };
 
-  if (!tfReady) {
-    return (
-      <View style={styles.loadingMsg}>
-        <Text>Loading...</Text>
+  //PoseExample components
+  return (
+    <View style={styles.container}>
+      <View style={styles.targetname}>
+        <Text style={{ fontSize: 40 }}>Do a Yoga Pose</Text>
       </View>
-    );
-  } else {
-    return (
-      <View style={styles.container}>
-        <TensorCamera
-          ref={cameraRef}
-          style={styles.cameraPreview}
-          type={type}
-          autorender={true}
-          resizeWidth={getOutputTensorWidth()}
-          resizeHeight={getOutputTensorHeight()}
-          resizeDepth={3}
-          onReady={handleCameraStream}
+      <View style={styles.tracker}>
+        {renderLoading()}
+        <PoseTracker
+          // Inputs/Props
+          modelUrl={""}
+          showFps={true}
+          renderKeypoints={true}
+          estimationModelType={"full"}
+          cameraState={cameraType}
+          estimationThreshold={0.5}
+          classificationThreshold={3}
+          resetExercises={false}
+          autoRender={true}
+          estimationSmoothing={true}
+          undefinedPoseName={"UNDEFINED POSE"}
+          undefinedExerciseName={"UNDEFINED EXERCISE"}
+          classificationSmoothingValue={1}
+          movementWindowResetLimit={20}
+          // Outputs/Callbacks
+          isDetecting={handleIsDetecting}
+          isLoading={handleIsLoading}
+          classifiedPoses={handleClassifiedPoses}
+          classifiedPose={handleClassifiedPose}
+          classifiedExercise={handleClassifiedExercise}
+          classifiedExercises={handleClassifiedExercises}
+          learnedPoses={handlePoseList}
+          learnedExercises={handleExerciseList}
         />
-        {renderPose()}
-        {/*renderFps()*/}
-        {renderFrameCount()}
-        {<Button title={poseOption.label} onPress={cyclePoseOptions}></Button>}
-        {recording ? (
-          <Button title="Stop Tracking & Create JSON" onPress={generateJSON} />
-        ) : (
-          <Button
-            title="Start Tracking Points"
-            onPress={() => setRecording(true)}
-          />
-        )}
+        <View style={styles.column}>{renderStatusBox()}</View>
       </View>
-    );
-  }
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    position: "relative",
-    width: CAM_PREVIEW_WIDTH,
-    height: CAM_PREVIEW_HEIGHT,
-    marginTop: Dimensions.get("window").height / 2 - CAM_PREVIEW_HEIGHT / 2,
+  column: {
+    flex: 1,
+    height: 100,
+    justifyContent: "space-between",
+    alignContent: "center",
   },
-  cameraPreview: {
-    height: "100%",
-    width: "100%",
-    zIndex: 1,
+  row: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignContent: "center",
   },
-  fpsContainer: {
-    position: "absolute",
-    top: 10,
-    left: 10,
-    width: 80,
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, .7)",
-    borderRadius: 2,
-    padding: 8,
-    zIndex: 20,
+  orangebox: {
+    flex: 1,
+    flexDirection: "column",
+    backgroundColor: "#e89631",
+    borderWidth: 2,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignContent: "center",
   },
-  loadingMsg: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-    alignItems: "center",
+  purplebox: {
+    flex: 1,
+    flexDirection: "column",
+    backgroundColor: "#af5dc2",
+    borderWidth: 2,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignContent: "center",
+  },
+  greenbox: {
+    flex: 1,
+    flexDirection: "column",
+    backgroundColor: "#58a34d",
+    borderWidth: 2,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignContent: "center",
+  },
+  targetname: {
+    flex: 1,
+    flexDirection: "row",
+    top: 15,
     justifyContent: "center",
   },
-  svg: {
+  button: {
+    position: "relative",
+    width: "100%",
+  },
+  loading: {
+    position: "absolute",
     width: "100%",
     height: "100%",
+    top: 100,
+    zIndex: 200,
+  },
+  tracker: {
     position: "absolute",
-    zIndex: 30,
+    left: 0,
+    top: PREVIEW_MARGIN,
+    zIndex: 100,
+  },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  activityIndicator: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    height: 80,
   },
 });
