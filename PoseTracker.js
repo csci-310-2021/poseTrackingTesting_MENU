@@ -210,7 +210,7 @@ export default function PoseTracker({
 
         console.log("Pose Name: ", poseName, " Confidence: ", confidence);
 
-        if (poseName && confidence) {
+        if (poseName && confidence && confidence > 0.5) {
           classifiedPose([poseName, confidence]);
           isDetecting(false);
 

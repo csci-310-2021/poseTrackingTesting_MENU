@@ -178,14 +178,16 @@ export default class ClassificationUtil {
   // 'classifyPose'
   async classifyPose(keypoints) {
     //use model to predict
+    //console.log(keypoints);
     const array = this.formatArray(keypoints);
+    //console.log(array);
     const tensor_of_keypoints = tf.tensor(array);
     //console.log("tensor " + tensor_of_keypoints);
 
     //If the model exists then do classification
     if (this.model) {
       const predictionTensor = this.model.predict(tensor_of_keypoints);
-      console.log(predictionTensor.dataSync());
+      //console.log(predictionTensor.dataSync());
       const [poseName, confidence] = await this.getClassifiedPose(
         predictionTensor,
         this.model_classes
@@ -480,8 +482,16 @@ export default class ClassificationUtil {
     if (pose.length > 0) {
       //define a new array
       for (let i = 0; i < 17; i++) {
-        arr_expanded[0].push(pose[0].keypoints[i]["x"]);
-        arr_expanded[0].push(pose[0].keypoints[i]["y"]);
+        if (pose[0].keypoints[i]["score"] < 0.5) {
+          //if the confidence of the pose is too low
+          //then add a 0 to the array
+          arr_expanded[0].push(0);
+          arr_expanded[0].push(0);
+          continue;
+        } else {
+          arr_expanded[0].push(pose[0].keypoints[i]["x"]);
+          arr_expanded[0].push(pose[0].keypoints[i]["y"]);
+        }
       }
     }
 
