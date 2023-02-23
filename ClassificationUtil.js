@@ -52,16 +52,22 @@ export default class ClassificationUtil {
   }
 
   async loadClassification(model_url) {
-    console.log("Loading Classification Model...");
+    console.log("Loading Classification Model in ClassificationUtil...");
     await tf.ready();
 
+    console.log("loading model.json");
     const modelJSON = require("./assets/model.json");
+    console.log("model.json loaded");
+    console.log("loading model weights");
     const modelWeights = require("./assets/group1-shard1of1.bin");
+    console.log("model weights loaded");
     const modelClasses = this.poseMap;
+    console.log("building model");
     this.model = await tf.loadLayersModel(
       bundleResourceIO(modelJSON, modelWeights)
     );
     this.model.summary();
+    console.log("model built");
     this.model_classes = modelClasses;
 
     const exercises = require("./assets/exercises.json");
@@ -164,6 +170,7 @@ export default class ClassificationUtil {
     }
     //---------------------END------------------------------
 
+    console.log("loaded classification model");
     return [this.model_classes, this.learned_exercises];
   }
 
