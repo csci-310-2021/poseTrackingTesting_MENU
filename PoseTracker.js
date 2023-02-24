@@ -160,7 +160,7 @@ export default function PoseTracker({
 
       //model, label, and the associated hooks can be used to modify app (if needed)
       const [labels, learned_exercises] =
-        await classificationUtil_.loadClassification(modelUrl);
+        await classificationUtil_.loadClassification("jumping-jack");
 
       learnedPoses(labels); //sets learned poses for callback (output)
       learnedExercises(learned_exercises); //sets learned exercises for callback (output)
@@ -208,10 +208,11 @@ export default function PoseTracker({
           poses
         );
 
-        console.log("Pose Name: ", poseName, " Confidence: ", confidence);
+        //console.log("Pose Name: ", poseName, " Confidence: ", confidence);
 
-        if (poseName && confidence && confidence > 0.5) {
+        if (poseName && confidence && confidence > 0.7) {
           classifiedPose([poseName, confidence]);
+          console.log("Pose Name: ", poseName, " Confidence: ", confidence);
           isDetecting(false);
 
           if (!resetExercises) {
@@ -296,6 +297,9 @@ export default function PoseTracker({
           const y = k.y;
           const cx = (x / getOutputTensorWidth()) * CAM_PREVIEW_WIDTH;
           const cy = (y / getOutputTensorHeight()) * CAM_PREVIEW_HEIGHT;
+
+          //console.log(k);
+
           return (
             <Circle
               key={k.name}

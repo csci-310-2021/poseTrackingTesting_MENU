@@ -48,19 +48,32 @@ export default class ClassificationUtil {
     this.poseMap = [];
     for (let i = 0; i < poseOptions.length; i++) {
       this.poseMap[i] = poseOptions[i].label;
+      console.log("poseMap: ", this.poseMap[i]);
     }
   }
 
-  async loadClassification(model_url) {
-    console.log("Loading Classification Model in ClassificationUtil...");
+  async loadClassification(exerciseType) {
+    console.log(
+      "Loading Classification Model for " +
+        exerciseType +
+        " in ClassificationUtil..."
+    );
     await tf.ready();
 
-    console.log("loading model.json");
-    const modelJSON = require("./assets/model.json");
-    console.log("model.json loaded");
-    console.log("loading model weights");
-    const modelWeights = require("./assets/group1-shard1of1.bin");
+    modelPath = "./assets/" + exerciseType + "/";
+    try {
+      console.log("loading model.json");
+      const modelJSON = require("model.json");
+      console.log("model.json loaded");
+      console.log("loading model weights");
+      const modelWeights = require("group1-shard1of1.bin");
+      console.log("model weights loaded");
+    } catch {
+      console.log("Error finding model files");
+    }
+
     console.log("model weights loaded");
+    //const modelClasses = require("./assets/classes.json");
     const modelClasses = this.poseMap;
     console.log("building model");
     this.model = await tf.loadLayersModel(
@@ -194,7 +207,7 @@ export default class ClassificationUtil {
     //If the model exists then do classification
     if (this.model) {
       const predictionTensor = this.model.predict(tensor_of_keypoints);
-      //console.log(predictionTensor.dataSync());
+      console.log(predictionTensor.dataSync());
       const [poseName, confidence] = await this.getClassifiedPose(
         predictionTensor,
         this.model_classes
@@ -250,7 +263,7 @@ export default class ClassificationUtil {
   // Topk() from tf.js returns the value
   // and index with the highest value/confidence.
   async getClassifiedPose(prediction, classes) {
-    //console.log(prediction);
+    console.log(prediction);
     const { values, indices } = await prediction.topk();
     const topKValues = await values.data();
     const topKIndices = await indices.data();
