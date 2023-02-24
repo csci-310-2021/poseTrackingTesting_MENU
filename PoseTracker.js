@@ -43,7 +43,7 @@ export default function PoseTracker({
   //Setting Default parameters for components
 
   //Inputs/Props from PoseTracker declaration
-  modelUrl = "",
+  exerciseType = "",
   showFps = true,
   renderKeypoints = true,
   estimationModelType = "full",
@@ -160,7 +160,7 @@ export default function PoseTracker({
 
       //model, label, and the associated hooks can be used to modify app (if needed)
       const [labels, learned_exercises] =
-        await classificationUtil_.loadClassification("jumping-jack");
+        await classificationUtil_.loadClassification(exerciseType);
 
       learnedPoses(labels); //sets learned poses for callback (output)
       learnedExercises(learned_exercises); //sets learned exercises for callback (output)
