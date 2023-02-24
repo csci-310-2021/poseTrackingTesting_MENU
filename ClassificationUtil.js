@@ -63,25 +63,24 @@ export default class ClassificationUtil {
     modelPath = "./assets/" + exerciseType + "/";
     try {
       console.log("loading model.json");
-      const modelJSON = require("model.json");
+      const modelJSON = require(modelPath + "model.json");
       console.log("model.json loaded");
       console.log("loading model weights");
-      const modelWeights = require("group1-shard1of1.bin");
+      const modelWeights = require(modelPath + "group1-shard1of1.bin");
       console.log("model weights loaded");
+      console.log("model weights loaded");
+      //const modelClasses = require("./assets/classes.json");
+      const modelClasses = this.poseMap;
+      console.log("building model");
+      this.model = await tf.loadLayersModel(
+        bundleResourceIO(modelJSON, modelWeights)
+      );
+      this.model.summary();
+      console.log("model built");
+      this.model_classes = modelClasses;
     } catch {
-      console.log("Error finding model files");
+      console.log("Error finding model files, could not load model");
     }
-
-    console.log("model weights loaded");
-    //const modelClasses = require("./assets/classes.json");
-    const modelClasses = this.poseMap;
-    console.log("building model");
-    this.model = await tf.loadLayersModel(
-      bundleResourceIO(modelJSON, modelWeights)
-    );
-    this.model.summary();
-    console.log("model built");
-    this.model_classes = modelClasses;
 
     const exercises = require("./assets/exercises.json");
     this.learned_exercises = {};
