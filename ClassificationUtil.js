@@ -1,5 +1,6 @@
 import * as tf from "@tensorflow/tfjs";
 import { bundleResourceIO } from "@tensorflow/tfjs-react-native";
+import exerciseOptions from "./assets/exercises.json";
 
 const poseOptions = [
   { value: 0, label: "JJ Bottom" },
@@ -46,10 +47,12 @@ export default class ClassificationUtil {
     this.resetlimit = 20;
     this.smoothingbuffer = 1;
     this.poseMap = [];
+    /*
     for (let i = 0; i < poseOptions.length; i++) {
       this.poseMap[i] = poseOptions[i].label;
       console.log("poseMap: ", this.poseMap[i]);
     }
+    */
   }
 
   async loadClassification(exerciseType) {
@@ -60,17 +63,21 @@ export default class ClassificationUtil {
     );
     await tf.ready();
 
-    modelPath = "./assets/" + exerciseType + "/";
+    const modelPath = "./assets/models/" + exerciseType + "/";
     try {
       console.log("loading model.json");
-      const modelJSON = require(modelPath + "model.json");
+      const modelJSON = require("./assets/models/jumping-jack/model.json");
       console.log("model.json loaded");
       console.log("loading model weights");
-      const modelWeights = require(modelPath + "group1-shard1of1.bin");
+      const modelWeights = require("./assets/models/jumping-jack/group1-shard1of1.bin");
       console.log("model weights loaded");
-      console.log("model weights loaded");
+      console.log("loading possible exercises and poses");
+      //const exercises = require("./assets/exercises.json");
+      modelClasses = exerciseOptions[exerciseType];
+      console.log("loaded model classes");
+      console.log(modelClasses);
       //const modelClasses = require("./assets/classes.json");
-      const modelClasses = this.poseMap;
+      //const modelClasses = this.poseMap;
       console.log("building model");
       this.model = await tf.loadLayersModel(
         bundleResourceIO(modelJSON, modelWeights)
