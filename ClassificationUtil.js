@@ -206,7 +206,7 @@ export default class ClassificationUtil {
     //If the model exists then do classification
     if (this.model) {
       const predictionTensor = this.model.predict(tensor_of_keypoints);
-      console.log(predictionTensor.dataSync());
+      //console.log(predictionTensor.dataSync());
       const [poseName, confidence] = await this.getClassifiedPose(
         predictionTensor,
         this.model_classes
@@ -262,7 +262,7 @@ export default class ClassificationUtil {
   // Topk() from tf.js returns the value
   // and index with the highest value/confidence.
   async getClassifiedPose(prediction, classes) {
-    console.log(prediction);
+    //console.log(prediction);
     const { values, indices } = await prediction.topk();
     const topKValues = await values.data();
     const topKIndices = await indices.data();
