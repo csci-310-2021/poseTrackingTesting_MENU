@@ -291,7 +291,6 @@ export default function App() {
     );
   }
 }
-
 const styles = StyleSheet.create({
   container: {
     position: "relative",
@@ -303,10 +302,11 @@ const styles = StyleSheet.create({
     height: "100%",
     width: "100%",
     zIndex: 1,
+    bottom: 100,
   },
   fpsContainer: {
     position: "absolute",
-    top: 10,
+    top: 0,
     left: 10,
     width: 80,
     alignItems: "center",

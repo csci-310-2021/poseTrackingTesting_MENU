@@ -39,7 +39,9 @@ const OUTPUT_TENSOR_HEIGHT = OUTPUT_TENSOR_WIDTH / (IS_IOS ? 9 / 16 : 3 / 4);
 
 let frameCount = 0;
 
+
 export default function PoseTracker({
+  
   //Setting Default parameters for components
 
   //Inputs/Props from PoseTracker declaration
@@ -77,6 +79,8 @@ export default function PoseTracker({
   const [poses, setPoses] = useState();
   const [tfReady, setTfReady] = useState(false);
   const [classificationUtil, setClassificationUtil] = useState(null);
+
+  
 
   useEffect(() => {
     classifiedPose([undefinedPoseName, 0.0]);

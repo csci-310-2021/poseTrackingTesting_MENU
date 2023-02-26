@@ -7,15 +7,15 @@ import {
   ActivityIndicator,
   Platform,
 } from "react-native";
-import StackNavigation from './Screens/StackNavigation';
-import PoseTracker from "./PoseTracker";
-import App from "./temp(training)";
+import StackNavigation from './StackNavigation';
+import PoseTracker from "../PoseTracker";
+import App from "../temp(training)";
 const IS_ANDROID = Platform.OS === "android";
 const IS_IOS = Platform.OS === "ios";
 
 const PREVIEW_MARGIN = IS_IOS ? -250 : -200;
 
-export default function PoseDetector({ route }) {
+export default function jumpingJackScreen({ route }) {
   //const { target_pose, target_exercise } = route.params;
 
   const target_pose = "JJ Top";
@@ -130,48 +130,45 @@ export default function PoseDetector({ route }) {
 
   //PoseExample components
   return (
-  <StackNavigation/>
-   // <App/>
-    // <View style={styles.container}>
-    //   <View style={styles.targetname}>
-    //     <Text style={{ fontSize: 40 }}>Do a Yoga Pose</Text>
-    //   </View>
+    <View style={styles.container}>
+      <View style={styles.targetname}>
+        <Text style={{ fontSize: 40 }}>Do a Yoga Pose</Text>
+      </View>
 
-    //   <View style={styles.tracker}>
-    //     {renderLoading()}
-    //     <PoseTracker
-    //       // Inputs/Props
-    //       exerciseType={"jumping-jack"}
-    //       showFps={true}
-    //       renderKeypoints={true}
-    //       estimationModelType={"full"}
-    //       cameraState={cameraType}
-    //       estimationThreshold={0.5}
-    //       classificationThreshold={3}
-    //       resetExercises={false}
-    //       autoRender={true}
-    //       estimationSmoothing={true}
-    //       undefinedPoseName={"UNDEFINED POSE"}
-    //       undefinedExerciseName={"UNDEFINED EXERCISE"}
-    //       classificationSmoothingValue={1}
-    //       movementWindowResetLimit={20}
-    //     //   // Outputs/Callbacks
-    //       isDetecting={handleIsDetecting}
-    //       isLoading={handleIsLoading}
-    //       classifiedPoses={handleClassifiedPoses}
-    //       classifiedPose={handleClassifiedPose}
-    //       classifiedExercise={handleClassifiedExercise}
-    //       classifiedExercises={handleClassifiedExercises}
-    //       learnedPoses={handlePoseList}
-    //       learnedExercises={handleExerciseList}
-    //     />
-    //     <View style={styles.column}>{renderStatusBox()}</View>
-    //   </View>
-    // </View>
+      <View style={styles.tracker}>
+        {renderLoading()}
+        <PoseTracker
+          // Inputs/Props
+          exerciseType={"jumping-jack"}
+          showFps={true}
+          renderKeypoints={true}
+          estimationModelType={"full"}
+          cameraState={cameraType}
+          estimationThreshold={0.5}
+          classificationThreshold={3}
+          resetExercises={false}
+          autoRender={true}
+          estimationSmoothing={true}
+          undefinedPoseName={"UNDEFINED POSE"}
+          undefinedExerciseName={"UNDEFINED EXERCISE"}
+          classificationSmoothingValue={1}
+          movementWindowResetLimit={20}
+        //   // Outputs/Callbacks
+          isDetecting={handleIsDetecting}
+          isLoading={handleIsLoading}
+          classifiedPoses={handleClassifiedPoses}
+          classifiedPose={handleClassifiedPose}
+          classifiedExercise={handleClassifiedExercise}
+          classifiedExercises={handleClassifiedExercises}
+          learnedPoses={handlePoseList}
+          learnedExercises={handleExerciseList}
+        />
+        <View style={styles.column}>{renderStatusBox()}</View>
+      </View>
+    </View>
     
   );
 }
-
 const styles = StyleSheet.create({
   column: {
     flex: 1,
